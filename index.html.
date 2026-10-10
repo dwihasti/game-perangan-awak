@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="jv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Nyocokake Perangane Awak</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Tone.js kanggo efek swara -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <!-- Load Font lucu kanggo bocah-bocah -->
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Konfigurasi Tailwind Custom Font -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'baloo': ['"Baloo 2"', 'cursive'],
+                    },
+                    colors: {
+                        'kid-blue': '#a0c4ff',
+                        'kid-pink': '#ffc6ff',
+                        'kid-yellow': '#fdffb6',
+                        'kid-green': '#caffbf',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Baloo 2', cursive;
+            background-color: #f8f9fa;
+            background-image: radial-gradient(#a0c4ff 2px, transparent 2px);
+            background-size: 30px 30px;
+            overflow-x: hidden;
+        }
+
+        /* Animasi Goyang (Salah) */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+            background-color: #ffadad !important;
+            border-color: #ff0000 !important;
+            color: #900000;
+        }
+
+        /* Animasi Benar */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(0); opacity: 0; display: none; }
+        }
+        .animate-pop {
+            animation: pop 0.5s ease-in-out forwards;
+            background-color: #caffbf !important;
+            border-color: #38b000 !important;
+        }
+
+        /* Tombol Game */
+        .game-btn {
+            transition: all 0.2s;
+            box-shadow: 0 4px 0px 0px rgba(0,0,0,0.2);
+        }
+        .game-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px 0px rgba(0,0,0,0.2);
+        }
+
+        /* Status Terpilih */
+        .selected {
+            border-color: #ffd6a5 !important;
+            background-color: #ffd6a5 !important;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 166, 0, 0.5);
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div id="game-container" class="max-w-2xl w-full bg-white rounded-3xl shadow-xl border-4 border-kid-blue p-6 text-center relative overflow-hidden">
+        
+        <!-- Header -->
+        <h1 class="text-4xl md:text-5xl font-extrabold text-blue-600 mb-2 drop-shadow-md">
+            🎮 Sinau Perangane Awak
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-700 mb-6 font-semibold">
+            Cocokna gambar karo jenenge ing basa <span class="text-pink-500">Krama Inggil!</span> 👦👧
+        </p>
+
+        <!-- Area Tombol Wiwiti -->
+        <div id="start-screen" class="flex flex-col items-center justify-center py-10">
+            <button onclick="wiwitiGame()" class="game-btn bg-yellow-400 hover:bg-yellow-300 text-yellow-900 text-3xl font-bold py-4 px-10 rounded-full border-4 border-yellow-600">
+                Wiwiti Dolanan! ▶️
+            </button>
+        </div>
+
+        <!-- Area Game (Awalipun Didhelikake) -->
+        <div id="play-screen" class="hidden flex flex-col items-center">
+            
+            <div id="info-babak" class="mb-4 bg-yellow-200 text-yellow-900 font-bold px-5 py-2 rounded-full border-2 border-yellow-400 text-xl shadow-sm flex items-center gap-4">
+                <span>🔄 Babak: <span id="babak-ke">1</span></span>
+                <span>|</span>
+                <span>⭐ Kasil: <span id="skor-saiki">0</span> / 5</span>
+            </div>
+
+            <!-- Papan Dolanan (Kiri: Gambar, Tengen: Teks) -->
+            <div class="grid grid-cols-2 gap-4 md:gap-8 w-full max-w-lg mb-8">
+                
+                <!-- Kolom Gambar -->
+                <div class="flex flex-col gap-4" id="kolom-gambar">
+                    <!-- Item bakal digawe liwat JavaScript -->
+                </div>
+
+                <!-- Kolom Tulisan -->
+                <div class="flex flex-col gap-4" id="kolom-tulisan">
+                    <!-- Item bakal digawe liwat JavaScript -->
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Layar Menang (Awalipun Didhelikake) -->
+        <div id="win-screen" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-40 rounded-2xl">
+            <h2 class="text-6xl text-kid-green font-extrabold mb-4 drop-shadow-lg" style="-webkit-text-stroke: 2px #38b000;">
+                Pinter Banget! 🌟
+            </h2>
+            <p class="text-2xl text-gray-700 mb-8 font-bold">Kowe wis sinau krama inggil dina iki!</p>
+            <button onclick="wiwitiGame()" class="game-btn bg-kid-blue hover:bg-blue-300 text-blue-900 text-2xl font-bold py-3 px-8 rounded-full border-4 border-blue-600">
+                Dolanan Maneh 🔄
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Canvas kanggo Efek Confetti -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <script>
+        // Data Kabeh Soal (Basa Jawa Krama Inggil - Lengkap kanggo SD Class 1)
+        const dataPeranganeAwak = [
+            { id: 'mata', emoji: '👁️', krama: 'Soca' },
+            { id: 'hidung', emoji: '👃', krama: 'Grana' },
+            { id: 'telinga', emoji: '👂', krama: 'Talingan' },
+            { id: 'mulut', emoji: '👄', krama: 'Tutuk' },
+            { id: 'gigi', emoji: '🦷', krama: 'Waja' },
+            { id: 'tangan', emoji: '✋', krama: 'Asta' },
+            { id: 'kaki', emoji: '🦶', krama: 'Ampeyan' },
+            { id: 'rambut', emoji: '🦱', krama: 'Rikma' },
+            { id: 'sirah', emoji: '👦', krama: 'Mustaka' },
+            { id: 'alis', emoji: '🤨', krama: 'Imba' },
+            { id: 'pipi', emoji: '😊', krama: 'Pangarasan' },
+            { id: 'bathuk', emoji: '💆', krama: 'Palarapan' },
+            { id: 'weteng', emoji: '🫄', krama: 'Padharan' },
+            { id: 'dhengkul', emoji: '🦵', krama: 'Jengku' },
+            { id: 'driji', emoji: '🖐️', krama: 'Racikan' },
+            { id: 'lambe', emoji: '💋', krama: 'Lathi' }
+        ];
+
+        let soalSaiki = [];
+        let gambarKapilih = null;
+        let tulisanKapilih = null;
+        let cacaheBener = 0;
+        let cacahBabak = 0;
+        let papanDikunci = false; // Kanggo nyegah klik nalika animasi salah
+        let synth = null; // Kanggo swara
+
+        // Inisialisasi Swara nggunakake Tone.js
+        function inisialisasiSwara() {
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+                // Set volume rada cilik kanggo bocah-bocah
+                synth.volume.value = -10; 
+            }
+        }
+
+        // Swara Yen Bener
+        function swaraBener() {
+            if(synth) synth.triggerAttackRelease("C5", "8n");
+        }
+
+        // Swara Yen Salah
+        function swaraSalah() {
+            if(synth) synth.triggerAttackRelease("G3", "8n");
+        }
+
+        // Swara Yen Menang (Nada seneng)
+        function swaraMenang() {
+            if(!synth) return;
+            const saiki = Tone.now();
+            synth.triggerAttackRelease("C4", "8n", saiki);
+            synth.triggerAttackRelease("E4", "8n", saiki + 0.2);
+            synth.triggerAttackRelease("G4", "8n", saiki + 0.4);
+            synth.triggerAttackRelease("C5", "4n", saiki + 0.6);
+        }
+
+        // Fungsi kanggo ngacak array (Fisher-Yates Shuffle)
+        function acakArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        async function wiwitiGame() {
+            // Setup Audio Context supaya bisa muni ing browser
+            await Tone.start();
+            inisialisasiSwara();
+
+            // Reset Variable
+            cacaheBener = 0;
+            cacahBabak++;
+            gambarKapilih = null;
+            tulisanKapilih = null;
+            papanDikunci = false;
+
+            // Nganyari Tampilan Babak lan Skor ing Layar
+            document.getElementById('babak-ke').innerText = cacahBabak;
+            document.getElementById('skor-saiki').innerText = cacaheBener;
+
+            // Singidake layar liyane
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('win-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.remove('hidden');
+            clearConfetti();
+
+            // Milih 5 soal acak saka 16 soal sing kasedhiya
+            let kabehDataDiacak = acakArray([...dataPeranganeAwak]);
+            soalSaiki = kabehDataDiacak.slice(0, 5);
+
+            // Gawe array kapisah kanggo gambar lan tulisan
+            let urutanGambar = acakArray([...soalSaiki]);
+            let urutanTulisan = acakArray([...soalSaiki]);
+
+            // Njupuk elemen HTML
+            const kolomGambar = document.getElementById('kolom-gambar');
+            const kolomTulisan = document.getElementById('kolom-tulisan');
+            
+            // Resiki elemen sedurunge
+            kolomGambar.innerHTML = '';
+            kolomTulisan.innerHTML = '';
+
+            // Tampilake Gambar
+            urutanGambar.forEach(item => {
+                const kothakGambar = document.createElement('div');
+                kothakGambar.className = 'game-btn bg-gray-100 border-4 border-gray-300 rounded-2xl flex items-center justify-center p-4 text-6xl cursor-pointer hover:bg-gray-200 select-none transition-colors duration-300 h-24';
+                kothakGambar.dataset.id = item.id;
+                kothakGambar.dataset.tipe = 'gambar';
+                kothakGambar.innerHTML = item.emoji;
+                kothakGambar.onclick = () => klikItem(kothakGambar);
+                kolomGambar.appendChild(kothakGambar);
+            });
+
+            // Tampilake Tulisan (Krama Inggil)
+            urutanTulisan.forEach(item => {
+                const kothakTulisan = document.createElement('div');
+                kothakTulisan.className = 'game-btn bg-gray-100 border-4 border-gray-300 rounded-2xl flex items-center justify-center p-4 text-3xl font-bold text-gray-700 cursor-pointer hover:bg-gray-200 select-none transition-colors duration-300 h-24';
+                kothakTulisan.dataset.id = item.id;
+                kothakTulisan.dataset.tipe = 'tulisan';
+                kothakTulisan.innerHTML = item.krama;
+                kothakTulisan.onclick = () => klikItem(kothakTulisan);
+                kolomTulisan.appendChild(kothakTulisan);
+            });
+        }
+
+        function klikItem(elemen) {
+            // Yen papan isih dikunci amarga animasi, utawa item wis bener, aja ditampa
+            if (papanDikunci || elemen.classList.contains('animate-pop')) return;
+
+            // Mainake swara tap cilik (opsional) - kita nggunakake swara mung pas cocog/salah
+            
+            const tipe = elemen.dataset.tipe;
+
+            // Mbusak pilihan sadurunge yen ngeklik tipe sing padha
+            if (tipe === 'gambar') {
+                if (gambarKapilih) gambarKapilih.classList.remove('selected');
+                gambarKapilih = elemen;
+            } else {
+                if (tulisanKapilih) tulisanKapilih.classList.remove('selected');
+                tulisanKapilih = elemen;
+            }
+
+            // Tambah efek visual "Terpilih"
+            elemen.classList.add('selected');
+
+            // Cek yen pangguna wis milih loro-lorone (Gambar lan Tulisan)
+            if (gambarKapilih && tulisanKapilih) {
+                priksaWangsulan();
+            }
+        }
+
+        function priksaWangsulan() {
+            papanDikunci = true; // Kunci papan supaya pangguna ora ngeklik sing liya
+            const idGambar = gambarKapilih.dataset.id;
+            const idTulisan = tulisanKapilih.dataset.id;
+
+            if (idGambar === idTulisan) {
+                // YEN BENER
+                swaraBener();
+                
+                // Tambah animasi "pop" utawa bener
+                gambarKapilih.classList.remove('selected');
+                tulisanKapilih.classList.remove('selected');
+                
+                gambarKapilih.classList.add('animate-pop');
+                tulisanKapilih.classList.add('animate-pop');
+
+                cacaheBener++;
+                document.getElementById('skor-saiki').innerText = cacaheBener;
+
+                // Mbusak elemen saka memori logic
+                gambarKapilih = null;
+                tulisanKapilih = null;
+                papanDikunci = false;
+
+                // Cek yen wis menang (5-5e wis bener)
+                if (cacaheBener === 5) {
+                    setTimeout(menang, 600);
+                }
+
+            } else {
+                // YEN SALAH
+                swaraSalah();
+
+                gambarKapilih.classList.remove('selected');
+                tulisanKapilih.classList.remove('selected');
+
+                gambarKapilih.classList.add('animate-shake');
+                tulisanKapilih.classList.add('animate-shake');
+
+                // Enteni animasi salah sadurunge mbusak pilihan lan mbukak kunci papan
+                setTimeout(() => {
+                    if (gambarKapilih) gambarKapilih.classList.remove('animate-shake');
+                    if (tulisanKapilih) tulisanKapilih.classList.remove('animate-shake');
+                    gambarKapilih = null;
+                    tulisanKapilih = null;
+                    papanDikunci = false;
+                }, 500);
+            }
+        }
+
+        function menang() {
+            swaraMenang();
+            document.getElementById('win-screen').classList.remove('hidden');
+            mulaiConfetti();
+        }
+
+        /* ----- SISTEM CONFETTI SEDERHANA ----- */
+        let confettiArray = [];
+        let confettiCtx = null;
+        let animasiId = null;
+
+        function mulaiConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            confettiCtx = canvas.getContext('2d');
+            confettiArray = [];
+
+            // Nggawe potongan confetti
+            for (let i = 0; i < 150; i++) {
+                confettiArray.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    ukuran: Math.random() * 10 + 5,
+                    kecepatanY: Math.random() * 3 + 2,
+                    kecepatanX: Math.random() * 2 - 1,
+                    warna: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    rotasi: Math.random() * 360,
+                    kecepatanRotasi: Math.random() * 10 - 5
+                });
+            }
+            gambarConfetti();
+        }
+
+        function gambarConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            confettiCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+            confettiArray.forEach(p => {
+                confettiCtx.save();
+                confettiCtx.fillStyle = p.warna;
+                confettiCtx.translate(p.x, p.y);
+                confettiCtx.rotate(p.rotasi * Math.PI / 180);
+                confettiCtx.fillRect(-p.ukuran/2, -p.ukuran/2, p.ukuran, p.ukuran);
+                confettiCtx.restore();
+
+                // Pindah posisi
+                p.y += p.kecepatanY;
+                p.x += p.kecepatanX;
+                p.rotasi += p.kecepatanRotasi;
+
+                // Baleni confetti saka dhuwur yen wis tekan ngisor
+                if (p.y > canvas.height) {
+                    p.y = -10;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+
+            animasiId = requestAnimationFrame(gambarConfetti);
+        }
+
+        function clearConfetti() {
+            if (animasiId) cancelAnimationFrame(animasiId);
+            const canvas = document.getElementById('confetti-canvas');
+            if(canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Cek yen ukuran layar owah (resize) supaya canvas tetep pas
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confetti-canvas');
+            if(canvas && !document.getElementById('win-screen').classList.contains('hidden')) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+
+    </script>
+</body>
+</html>
